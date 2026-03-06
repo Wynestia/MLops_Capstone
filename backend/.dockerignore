@@ -1,0 +1,19 @@
+# Docker ignore — ไม่ copy ไฟล์พวกนี้เข้า image
+.env
+.git/
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+uploads/
+*.log
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/

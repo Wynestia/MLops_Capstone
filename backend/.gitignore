@@ -1,0 +1,83 @@
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+*.egg-link
+.installed.cfg
+lib/
+lib64/
+
+# ─── Virtual Environment ─────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.env.local
+.env.production
+
+# ─── Environment Variables ───────────────────────────────────────────────────
+.env
+# (keep .env.example — ไม่ ignore)
+
+# ─── FastAPI / Uvicorn ───────────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── Database ────────────────────────────────────────────────────────────────
+*.sqlite3
+*.db
+
+# ─── Alembic ─────────────────────────────────────────────────────────────────
+# Keep migrations/versions/*.py — don't ignore them
+
+# ─── Uploads / Media ─────────────────────────────────────────────────────────
+uploads/
+media/
+
+# ─── ML Models ───────────────────────────────────────────────────────────────
+ml/*.onnx
+ml/*.pt
+ml/*.pth
+ml/*.pkl
+ml/*.h5
+# Keep notebooks
+!ml/notebooks/
+
+# ─── Testing ─────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.coveragerc
+
+# ─── Type Checking ───────────────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ─── IDE / Editor ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── OS ──────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db

@@ -1,0 +1,47 @@
+services:
+
+  # ─── PostgreSQL Database ──────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: pawmind_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: pawmind
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql  # auto-run ตอน start ครั้งแรก
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pawmind"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── FastAPI Backend ──────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pawmind_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Override DATABASE_URL ให้ชี้มาที่ service 'db' แทน localhost
+      DATABASE_URL: postgresql+asyncpg://postgres:password@db:5432/pawmind
+      DATABASE_URL_SYNC: postgresql://postgres:password@db:5432/pawmind
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads   # persist uploaded images
+      - ./ml:/app/ml             # persist ML model
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local
