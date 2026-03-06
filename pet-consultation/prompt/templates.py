@@ -127,3 +127,131 @@ FALLBACK_MESSAGE_EN = "Sorry, the system is currently unable to process your req
 
 UNCERTAINTY_NOTE_TH = "⚠️ ความมั่นใจในการวิเคราะห์ค่อนข้างต่ำ ({confidence:.0%}) ผลลัพธ์อาจไม่แม่นยำ"
 UNCERTAINTY_NOTE_EN = "⚠️ Analysis confidence is relatively low ({confidence:.0%}). Results may not be fully accurate."
+
+# ─────────────────────────────────────────
+# Few-Shot Prompting Templates
+# ─────────────────────────────────────────
+
+FEW_SHOT_HEALTH_TH = """
+=== ตัวอย่างการตอบ (Few-Shot) ===
+Q: น้องหมาไม่กินข้าวและซึมมา 2 วัน
+A: ⚠️ อาการไม่กินข้าวและซึมเป็นสัญญาณที่ควรใส่ใจ อาจมีสาเหตุหลายอย่าง เช่น ปัญหาทางเดินอาหาร หรือความเครียด แนะนำให้พาพบสัตวแพทย์ภายใน 24 ชั่วโมง อย่าพยายามให้ยาเองโดยไม่มีการวินิจฉัย
+
+Q: น้องแมวอาเจียนหลังกินอาหาร
+A: ⚠️ การอาเจียนหลังอาหารอาจเกิดจากกินเร็วเกินไป หรืออาจมีปัญหาสุขภาพที่ต้องตรวจ หากเกิดขึ้นมากกว่า 2 ครั้งใน 24 ชั่วโมง ควรพบสัตวแพทย์ทันที
+"""
+
+FEW_SHOT_HEALTH_EN = """
+=== Response Examples (Few-Shot) ===
+Q: My dog hasn't been eating and seems lethargic for 2 days.
+A: ⚠️ Loss of appetite combined with lethargy are concerning signs. This could indicate digestive issues or stress. I strongly recommend visiting a vet within 24 hours. Please don't administer medication without a proper diagnosis.
+
+Q: My cat vomits after eating.
+A: ⚠️ Post-meal vomiting may result from eating too fast or an underlying health issue. If it happens more than twice in 24 hours, please see a vet immediately.
+"""
+
+FEW_SHOT_SUGGEST_TH = """
+=== ตัวอย่างการตอบ (Few-Shot) ===
+Q: ควรทำอะไรกับน้องหมาที่ดูเครียดมากวันนี้?
+A: 😊 สำหรับน้องที่ดูเครียด ลองทำสิ่งเหล่านี้: 1) พาออกเดิน 15-20 นาที เพื่อปลดปล่อยพลังงาน 2) ให้เวลาเล่นกับของเล่นที่ชอบ 3) ลดสิ่งกระตุ้นในสภาพแวดล้อม เช่น เสียงดัง 4) ให้ของขบเคี้ยวเพื่อผ่อนคลาย
+
+Q: น้องหมามีความสุขมาก จะทำให้ดียิ่งขึ้นได้อย่างไร?
+A: 🐾 น่ายินดีมากที่น้องมีความสุข! คุณสามารถเสริมความสุขได้ด้วย: 1) เล่น fetch หรือ agility เพื่อกระตุ้นร่างกายและสมอง 2) สอน trick ใหม่ ๆ 3) พาพบเพื่อนสุนัขที่ไว้ใจ
+"""
+
+FEW_SHOT_SUGGEST_EN = """
+=== Response Examples (Few-Shot) ===
+Q: What should I do for my dog who seems very stressed today?
+A: 😊 For a stressed pet, try: 1) A 15-20 min walk to release energy 2) Playtime with favorite toys 3) Reduce environmental triggers like loud noises 4) Give a chew toy to help them relax.
+
+Q: My dog is very happy. How can I make it even better?
+A: 🐾 That's wonderful! You can boost happiness by: 1) Playing fetch or agility games 2) Teaching new tricks 3) Arranging trusted dog-friend playdates.
+"""
+
+# ─────────────────────────────────────────
+# Chain-of-Thought (CoT) Templates
+# ─────────────────────────────────────────
+
+COT_HEALTH_TH = """
+=== วิธีการคิด (Chain-of-Thought) ===
+ก่อนตอบ ให้วิเคราะห์ตามลำดับ:
+1. อาการที่สังเกตได้: ระบุอาการที่เจ้าของรายงานมา
+2. ประเมินความเสี่ยง: ต่ำ / กลาง / สูง
+3. สาเหตุที่เป็นไปได้: ระบุ 2-3 สาเหตุ
+4. คำแนะนำ: แนะนำแนวทาง และระบุชัดเจนว่าควรพบสัตวแพทย์หรือไม่
+จากนั้นตอบรวมเป็นข้อความเดียวที่ชัดเจนและเป็นมิตร
+"""
+
+COT_HEALTH_EN = """
+=== Thinking Process (Chain-of-Thought) ===
+Before responding, reason through:
+1. Observed symptoms: List what the owner reported
+2. Risk assessment: Low / Medium / High
+3. Possible causes: List 2-3 possibilities
+4. Recommendation: State clearly whether a vet visit is needed
+Then provide a single, clear, and friendly response.
+"""
+
+COT_TREND_TH = """
+=== วิธีการคิด (Chain-of-Thought) ===
+ก่อนตอบ ให้วิเคราะห์:
+1. อารมณ์ที่พบบ่อยที่สุด (dominant emotion)
+2. ทิศทาง: ดีขึ้น / แย่ลง / คงที่ / ขึ้นลง
+3. ความผิดปกติ (ถ้ามี): อารมณ์ที่เกิดขึ้นกะทันหัน
+4. ข้อเสนอแนะ: สิ่งที่เจ้าของควรทำต่อไป
+จากนั้นสรุปเป็นข้อความที่ชัดเจน
+"""
+
+COT_TREND_EN = """
+=== Thinking Process (Chain-of-Thought) ===
+Before responding, analyze:
+1. Most frequent emotion (dominant)
+2. Direction: improving / declining / stable / fluctuating
+3. Anomalies (if any): sudden emotion shifts
+4. Recommendations: what the owner should do next
+Then provide a clear, concise summary.
+"""
+
+# Tree-of-Thought (ToT) Templates
+TOT_TREND_TH = (
+    "=== Tree-of-Thought: สำรวจ 3 มุมมอง ===\n"
+    "Path A - Optimistic: สัญญาณที่ดี? อารมณ์ที่น่าพอใจ?\n"
+    "Path B - Neutral: ภาพรวมปกติไหม? มี pattern น่าสังเกตไหม?\n"
+    "Path C - Cautious: สัญญาณเตือน? ความเสี่ยงที่ควรใส่ใจ?\n"
+    "สรุปทั้ง 3 มุมมองเป็นคำตอบที่สมดุลและมีประโยชน์สำหรับเจ้าของ"
+)
+TOT_TREND_EN = (
+    "=== Tree-of-Thought: Explore 3 Perspectives ===\n"
+    "Path A - Optimistic: Positive signals? Healthy emotions?\n"
+    "Path B - Neutral: Overall pattern normal? Notable trends?\n"
+    "Path C - Cautious: Warning signs? Risks to monitor?\n"
+    "Synthesize all 3 paths into a balanced, helpful answer for the owner."
+)
+
+# ReAct Templates
+REACT_ANALYZE_TH = (
+    "=== ReAct: Thought-Action-Observation ===\n"
+    "Thought 1: สังเกต emotion history\n"
+    "Action 1: ระบุ dominant emotion, distribution, trend\n"
+    "Observation 1: ผลที่ได้\n"
+    "Thought 2: มี anomaly หรือ pattern น่ากังวลไหม?\n"
+    "Action 2: ตรวจ consecutive negative หรือ mood swings\n"
+    "Observation 2: สิ่งที่พบ\n"
+    "Thought 3: เจ้าของควรทำอะไรต่อไป?\n"
+    "Action 3: คำแนะนำที่ชัดเจนและ actionable\n"
+    "Observation 3: Final recommendation\n"
+    "สรุปเป็น 1 ย่อหน้าสำหรับเจ้าของ"
+)
+REACT_ANALYZE_EN = (
+    "=== ReAct: Thought-Action-Observation ===\n"
+    "Thought 1: Observe emotion history\n"
+    "Action 1: Identify dominant emotion, compute distribution, assess trend\n"
+    "Observation 1: Summarize findings\n"
+    "Thought 2: Any anomalies or concerning patterns?\n"
+    "Action 2: Check for consecutive negatives or mood swings\n"
+    "Observation 2: What was found\n"
+    "Thought 3: What should the owner do next?\n"
+    "Action 3: Formulate clear, actionable recommendations\n"
+    "Observation 3: Final recommendation\n"
+    "Summarize in 1 clear paragraph."
+)

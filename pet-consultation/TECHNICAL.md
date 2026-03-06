@@ -9,39 +9,40 @@
 
 ```
 pet-consultation/
-├── main.py                   # FastAPI app entry point
-├── requirements.txt          # Python dependencies
-├── .env                      # Environment variables (API keys)
-├── test_chat.py              # API test suite
+├── main.py                       # FastAPI app entry point
+├── requirements.txt              # Python dependencies
+├── .env                          # Environment variables (API keys)
+├── test_chat.py                  # API test suite
 │
 ├── api/
-│   └── routes.py             # HTTP route definitions (endpoints)
+│   └── routes.py                 # HTTP route definitions (endpoints)
 │
 ├── client/
-│   └── groq_client.py        # Groq API client (OpenAI-compatible)
+│   └── groq_client.py            # Groq API client (OpenAI-compatible)
 │
 ├── config/
-│   ├── settings.py           # App settings (API key, model, limits)
-│   └── constants.py          # Enums, keyword lists, emotion labels
+│   ├── settings.py               # App settings (API key, model, limits)
+│   └── constants.py              # Enums, keyword lists, emotion labels
 │
 ├── prompt/
-│   ├── builder.py            # Prompt assembly logic
-│   └── templates.py          # Prompt string templates (TH/EN)
+│   ├── builder.py                # Prompt assembly + Few-Shot/CoT injection
+│   └── templates.py              # All prompt templates (TH/EN)
 │
 ├── schemas/
-│   ├── request.py            # Request body models (Pydantic)
-│   └── response.py           # Response body models (Pydantic)
+│   ├── request.py                # Request body models (Pydantic)
+│   └── response.py               # Response body models (Pydantic)
 │
 ├── services/
-│   ├── chat_service.py       # Core business logic (chat/analyze/summarize)
-│   ├── intent_detector.py    # Keyword-based intent classification
-│   ├── safety_filter.py      # Alert level & medical disclaimer logic
-│   └── emotion_analyzer.py   # Batch emotion trend analysis
+│   ├── chat_service.py           # Core business logic (chat/analyze/summarize)
+│   ├── intent_detector.py        # Keyword-based intent classification
+│   ├── safety_filter.py          # Alert level & medical disclaimer logic
+│   ├── emotion_analyzer.py       # Batch emotion trend analysis
+│   └── history_summarizer.py     # ✨ Rule-based emotion history summarizer
 │
 └── utils/
-    ├── cache.py              # In-memory TTL response cache
-    ├── token_counter.py      # Token budget & history truncation
-    └── language.py           # Language auto-detection
+    ├── cache.py                  # In-memory TTL response cache
+    ├── token_counter.py          # Token budget & history truncation
+    └── language.py               # Language auto-detection
 ```
 
 ---
@@ -148,26 +149,34 @@ Base path: `http://localhost:8000/api/v1`
 User Request (POST /chat)
         │
         ▼
-  detect_language()         ← ตรวจภาษาอัตโนมัติ
+  detect_language()              ← ตรวจภาษาอัตโนมัติ
         │
         ▼
-  detect_intent()           ← classify: health_concern / suggest / explain / trend / general
+  detect_intent()                ← classify: health_concern / suggest / explain / trend / general
         │
         ▼
-  truncate_history_by_token_budget()  ← ตัด emotion history ให้อยู่ใน 6000 token budget
+  INTENT_TEMPERATURE[intent]     ← ✨ เลือก temperature ตาม intent (0.2–0.75)
         │
         ▼
-  build_system_prompt()     ← สร้าง system prompt จาก pet profile + emotion + intent + language
+  truncate_history_by_token_budget()
+        │
+        ├─ (ถ้ามี records ที่ถูกตัดออก)
+        ▼
+  summarize_emotion_history()    ← ✨ สรุปประวัติเก่าแทนการทิ้ง
         │
         ▼
-  response_cache.get()      ← ตรวจ cache (TTL 5 min)
+  build_system_prompt()          ← รวม persona + emotion + intent instruction
+        │   + ✨ Few-Shot examples (health/suggest intents)
+        │   + ✨ Chain-of-Thought steps (health/trend intents)
+        ▼
+  response_cache.get()           ← ตรวจ cache (TTL 5 min)
         │
         ▼ (cache miss)
-  groq_client.chat()        ← ส่งไปยัง Groq API พร้อม retry logic
+  groq_client.chat(temperature)  ← ส่งไปยัง Groq API พร้อม intent-tuned temp
         │
         ▼
-  determine_alert_level()   ← คำนวณ alert level จาก emotion + intent
-  should_add_disclaimer()   ← ตรวจว่าต้องแนบ medical disclaimer
+  determine_alert_level()        ← คำนวณ alert level
+  should_add_disclaimer()        ← ตรวจ medical disclaimer
         │
         ▼
   Parse → TextResponse | StructuredResponse
@@ -246,12 +255,24 @@ User Request (POST /chat)
 - `CURRENT_EMOTION_TH/EN` — แสดงอารมณ์ปัจจุบัน + uncertainty note
 - `EMOTION_HISTORY_TH/EN` — แสดงประวัติอารมณ์
 - `INTENT_*_TH/EN` — คำสั่งเพิ่มตาม intent
+- `FEW_SHOT_HEALTH_TH/EN` — ✨ ตัวอย่าง Q&A สำหรับ health_concern
+- `FEW_SHOT_SUGGEST_TH/EN` — ✨ ตัวอย่าง Q&A สำหรับ suggest_action
+- `COT_HEALTH_TH/EN` — ✨ Chain-of-Thought steps สำหรับ health_concern
+- `COT_TREND_TH/EN` — ✨ Chain-of-Thought steps สำหรับ trend_analysis
 - `STRUCTURED_OUTPUT_INSTRUCTION_TH/EN` — สั่งให้ตอบเป็น JSON
 - `MEDICAL_DISCLAIMER_TH/EN` — คำเตือนสุขภาพ
 - `UNCERTAINTY_NOTE_TH/EN` — คำเตือนเมื่อ confidence ต่ำ
 
 ### Builder (`prompt/builder.py`)
-`build_system_prompt()` รวม template ทุกส่วนเป็น system prompt เดียว
+`build_system_prompt()` รวม template ทุกส่วนตามลำดับ:
+1. System base rules
+2. Pet persona
+3. Current emotion
+4. Emotion history
+5. Intent instruction
+6. ✨ Few-Shot examples (health_concern / suggest_action)
+7. ✨ Chain-of-Thought steps (health_concern / trend_analysis)
+8. Structured output instruction (ถ้า mode = structured)
 
 ---
 
@@ -297,9 +318,61 @@ pip install -r requirements.txt
 
 ---
 
+---
+
+## ✨ LLM Performance Techniques
+
+เทคนิคที่ implement เพื่อเพิ่ม response quality:
+
+### 1. Intent-based Temperature Tuning
+ปรับ `temperature` ตาม intent แทนค่าคงที่ 0.7
+
+| Intent | Temperature | เหตุผล |
+|---|---|---|
+| `health_concern` | **0.2** | ต้องการความระมัดระวัง, conservative |
+| `trend_analysis` | **0.3** | ต้องการความแม่นยำ, analytical |
+| `explain_emotion` | **0.5** | balanced |
+| `suggest_action` | **0.6** | helpful, slightly creative |
+| `general_chat` | **0.75** | warm, conversational |
+
+---
+
+### 2. Few-Shot Prompting
+เพิ่มตัวอย่าง Q&A ใน system prompt สำหรับ intent ที่ต้องการ tone/format เฉพาะ
+- `health_concern` → ตัวอย่างการตอบที่ระมัดระวัง, แนะนำพบสัตวแพทย์
+- `suggest_action` → ตัวอย่างคำแนะนำที่เป็นรูปแบบ numbered list
+
+> ช่วยให้ LLM เข้าใจ expected output format และ tone โดยไม่ต้อง fine-tune
+
+---
+
+### 3. Chain-of-Thought (CoT) Reasoning
+ใส่คำสั่งให้ LLM วิเคราะห์ step-by-step ก่อนตอบ สำหรับ intent ที่ซับซ้อน:
+- `health_concern`: อาการ → ความเสี่ยง → สาเหตุ → คำแนะนำ
+- `trend_analysis`: dominant → trend → anomalies → คำแนะนำ
+
+> ลด hallucination และเพิ่ม reasoning quality สำหรับกรณีสำคัญ
+
+---
+
+### 4. History Summarization (แทน Hard Truncation)
+เมื่อ emotion history เกิน token budget, ระบบจะ:
+1. **ตัด** records ที่ใหม่กว่าออกไว้ใน context
+2. **สรุป** records เก่าด้วย `history_summarizer.py` (rule-based, ไม่เรียก LLM เพิ่ม)
+3. **แทรก** summary เป็น system message ต้น session
+
+```
+[สรุปประวัติ 15 ครั้ง] อารมณ์หลัก: sad (53%) | แนวโน้ม: แย่ลง | การกระจาย: sad (8/15), neutral (4/15), happy (3/15)
+```
+
+> ป้องกันการสูญเสีย context สำคัญ โดยไม่เพิ่ม latency จาก LLM call
+
+---
+
 ## ⚠️ Limitations
 
 - **No persistent storage** — session history และ cache หายเมื่อ restart
 - **No authentication** — API ไม่มี API key หรือ auth ในตอนนี้
 - **Intent detection** — ใช้ keyword matching เท่านั้น ไม่ใช้ ML-based NLU
 - **Token estimation** — ใช้การประมาณ (~3 chars/token) ไม่ใช่ tokenizer จริง
+- **History summarizer** — ใช้ rule-based logic, ไม่ใช่ LLM summarization

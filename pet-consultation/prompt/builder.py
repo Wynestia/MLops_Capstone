@@ -15,6 +15,12 @@ from prompt.templates import (
     UNCERTAINTY_NOTE_TH, UNCERTAINTY_NOTE_EN,
     TREND_ANALYSIS_PROMPT_TH, TREND_ANALYSIS_PROMPT_EN,
     SUMMARY_PROMPT_TH, SUMMARY_PROMPT_EN,
+    FEW_SHOT_HEALTH_TH, FEW_SHOT_HEALTH_EN,
+    FEW_SHOT_SUGGEST_TH, FEW_SHOT_SUGGEST_EN,
+    COT_HEALTH_TH, COT_HEALTH_EN,
+    COT_TREND_TH, COT_TREND_EN,
+    TOT_TREND_TH, TOT_TREND_EN,
+    REACT_ANALYZE_TH, REACT_ANALYZE_EN,
 )
 from prompt.persona import build_pet_persona
 
@@ -83,7 +89,21 @@ def build_system_prompt(
         parts.append(f"\n=== คำสั่ง ===" if language == Language.TH else "\n=== Instruction ===")
         parts.append(instruction.format(name=profile.name))
 
-    # 6. Structured output instruction
+    # 6. Few-Shot examples (for health_concern and suggest_action)
+    if intent == Intent.HEALTH_CONCERN:
+        parts.append(FEW_SHOT_HEALTH_TH if language == Language.TH else FEW_SHOT_HEALTH_EN)
+    elif intent == Intent.SUGGEST_ACTION:
+        parts.append(FEW_SHOT_SUGGEST_TH if language == Language.TH else FEW_SHOT_SUGGEST_EN)
+
+    # 7. Chain-of-Thought reasoning (for health_concern and trend_analysis)
+    if intent == Intent.HEALTH_CONCERN:
+        parts.append(COT_HEALTH_TH if language == Language.TH else COT_HEALTH_EN)
+    elif intent == Intent.TREND_ANALYSIS:
+        parts.append(COT_TREND_TH if language == Language.TH else COT_TREND_EN)
+        # ✨ Tree-of-Thought on top of CoT for trend_analysis
+        parts.append(TOT_TREND_TH if language == Language.TH else TOT_TREND_EN)
+
+    # 8. Structured output instruction
     if response_mode == ResponseMode.STRUCTURED:
         parts.append(
             STRUCTURED_OUTPUT_INSTRUCTION_TH if language == Language.TH
@@ -98,8 +118,11 @@ def build_trend_prompt(
     timeframe_days: int,
     language: Language = Language.TH,
 ) -> str:
+    # ✨ ReAct: inject Thought-Action-Observation structure into trend prompt
+    react = REACT_ANALYZE_TH if language == Language.TH else REACT_ANALYZE_EN
     tmpl = TREND_ANALYSIS_PROMPT_TH if language == Language.TH else TREND_ANALYSIS_PROMPT_EN
-    return tmpl.format(name=profile.name, days=timeframe_days)
+    base = tmpl.format(name=profile.name, days=timeframe_days)
+    return react + "\n" + base
 
 
 def build_summary_prompt(

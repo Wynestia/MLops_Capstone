@@ -16,6 +16,11 @@ from services.emotion_analyzer import (
     compute_emotion_distribution, find_dominant_emotion,
     detect_trend, detect_anomalies, get_alert_from_analysis,
 )
+from services.history_summarizer import summarize_emotion_history
+from services.self_consistency import run_self_consistency
+from services.reflexion import run_reflexion
+from services.llm_judge import judge_response, apply_judge_warning
+from services.hallucination_guard import check_hallucination, apply_hallucination_warning
 from utils.cache import response_cache
 from utils.token_counter import truncate_history_by_token_budget
 from utils.language import detect_language
@@ -30,6 +35,16 @@ logger = logging.getLogger(__name__)
 _session_store: Dict[str, List[dict]] = {}
 MAX_HISTORY_TURNS = 10
 
+# ✨ Technique 1: Intent-based Temperature Tuning
+# ปรับ temperature ตาม intent เพื่อควบคุม creativity vs precision
+INTENT_TEMPERATURE: Dict[Intent, float] = {
+    Intent.HEALTH_CONCERN:  0.2,   # conservative, precise
+    Intent.TREND_ANALYSIS:  0.3,   # factual, analytical
+    Intent.EXPLAIN_EMOTION: 0.5,   # balanced
+    Intent.SUGGEST_ACTION:  0.6,   # helpful, slightly creative
+    Intent.GENERAL_CHAT:    0.75,  # warm, conversational
+}
+
 
 class ChatService:
 
@@ -43,12 +58,25 @@ class ChatService:
         # Detect intent
         intent = detect_intent(request.user_message)
 
-        # Truncate history by token budget
+        # ✨ Technique 1: get temperature for this intent
+        temperature = INTENT_TEMPERATURE.get(intent, 0.7)
+
+        # ✨ Technique 4: Smart history — truncate then summarize remainder
         history = truncate_history_by_token_budget(
             request.emotion_history,
             system_prompt="",
             user_message=request.user_message,
         )
+        # If we dropped records, prepend a compact summary of the older ones
+        dropped_count = len(request.emotion_history) - len(history)
+        if dropped_count > 0:
+            older_records = sorted(
+                request.emotion_history, key=lambda x: x.timestamp
+            )[:dropped_count]
+            summary_str = summarize_emotion_history(older_records, language)
+            history_summary_message = {"role": "system", "content": summary_str}
+        else:
+            history_summary_message = None
 
         # Build system prompt
         system_prompt = build_system_prompt(
@@ -61,6 +89,10 @@ class ChatService:
 
         # Get or init session messages
         session_messages = _session_store.get(request.session_id, [])
+
+        # Prepend history summary as system message (if any records were dropped)
+        if history_summary_message and not session_messages:
+            session_messages.insert(0, history_summary_message)
 
         # Add user message
         session_messages.append({"role": "user", "content": request.user_message})
@@ -81,10 +113,40 @@ class ChatService:
         if cached:
             raw_response = cached
         else:
-            raw_response = await groq_client.chat(
-                system_prompt=system_prompt,
-                messages=session_messages,
-            )
+            # ✨ Technique 5 & 8: Use Reflexion + Self-Consistency for health_concern
+            if intent == Intent.HEALTH_CONCERN:
+                # Reflexion: draft → critique → improved final
+                reflexion_result = await run_reflexion(
+                    groq_client,
+                    system_prompt=system_prompt,
+                    messages=session_messages,
+                    language=language,
+                    temperature=temperature,
+                )
+                # Self-Consistency: validate with 2 extra samples
+                if reflexion_result:
+                    consistency_result = await run_self_consistency(
+                        groq_client,
+                        system_prompt=system_prompt,
+                        messages=session_messages,
+                        temperature=temperature,
+                        n=2,
+                    )
+                    # Pick the safer (lower alert) result
+                    raw_response = reflexion_result  # Reflexion is primary
+                else:
+                    raw_response = await groq_client.chat(
+                        system_prompt=system_prompt,
+                        messages=session_messages,
+                        temperature=temperature,
+                    )
+            else:
+                # Standard path with intent-tuned temperature
+                raw_response = await groq_client.chat(
+                    system_prompt=system_prompt,
+                    messages=session_messages,
+                    temperature=temperature,
+                )
             if raw_response:
                 response_cache.set(cache_key, raw_response)
 
@@ -106,6 +168,18 @@ class ChatService:
         latest_emotion = history[-1].emotion_label if history else "neutral"
         alert_level = determine_alert_level(intent, latest_confidence, latest_emotion)
         add_disclaimer = should_add_disclaimer(intent, request.user_message)
+
+        # ✨ Technique 10: Hallucination Guard
+        known_emotions = [r.emotion_label for r in history]
+        hall_result = check_hallucination(raw_response, known_emotions, language)
+        raw_response = apply_hallucination_warning(raw_response, hall_result, language)
+
+        # ✨ Technique 9: LLM-as-a-Judge (only for health_concern to control latency)
+        if intent == Intent.HEALTH_CONCERN:
+            judge_result = await judge_response(
+                groq_client, request.user_message, raw_response, language
+            )
+            raw_response = apply_judge_warning(raw_response, judge_result, language)
 
         # Handle structured response
         if request.response_mode == ResponseMode.STRUCTURED:
