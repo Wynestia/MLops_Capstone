@@ -45,7 +45,7 @@ async def create_mood_log(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _get_dog_or_404(dog_id, current_user, db)
+    dog = await _get_dog_or_404(dog_id, current_user, db)
 
     valid_moods = {"Happy", "Relaxed", "Sad", "Angry"}
     if body.mood not in valid_moods:
@@ -59,6 +59,7 @@ async def create_mood_log(
         logged_at=body.logged_at or datetime.now(timezone.utc),
     )
     db.add(log)
+    dog.status = body.mood
     await db.flush()
     await db.refresh(log)
     return MoodLogOut.model_validate(log)

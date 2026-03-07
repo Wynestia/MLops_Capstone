@@ -1,16 +1,18 @@
-from pydantic import BaseModel
-from datetime import datetime, date
+from datetime import date, datetime
 from typing import Optional
+
+from pydantic import BaseModel
 
 
 class DogCreate(BaseModel):
     name: str
     breed: Optional[str] = None
     birthday: Optional[date] = None
-    sex: Optional[str] = None         # Male/Female/Unknown
+    sex: Optional[str] = None  # Male/Female/Unknown
     weight_kg: Optional[float] = None
     microchip: Optional[str] = None
-    emoji: str = "🐕"
+    emoji: str = "\U0001F436"
+    status: Optional[str] = None  # Happy/Relaxed/Sad/Angry
     energy_level: Optional[str] = None
     notes: Optional[str] = None
 
@@ -23,6 +25,7 @@ class DogUpdate(BaseModel):
     weight_kg: Optional[float] = None
     microchip: Optional[str] = None
     emoji: Optional[str] = None
+    status: Optional[str] = None
     energy_level: Optional[str] = None
     notes: Optional[str] = None
 
@@ -37,6 +40,7 @@ class DogOut(BaseModel):
     weight_kg: Optional[float]
     microchip: Optional[str]
     emoji: str
+    status: Optional[str]
     energy_level: Optional[str]
     notes: Optional[str]
     created_at: datetime

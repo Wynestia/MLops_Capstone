@@ -46,6 +46,7 @@ async def analyze_image(
 
     # Run ML inference
     prediction = ml_service.predict(image_bytes)
+    dog.status = prediction["mood"]
 
     # Save analysis to DB
     analysis = MoodAnalysis(

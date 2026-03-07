@@ -44,6 +44,8 @@ CREATE TABLE dogs (
     weight_kg    NUMERIC(5,2),
     microchip    VARCHAR(50),
     emoji        VARCHAR(10)  DEFAULT '🐕',
+    status       VARCHAR(20)  DEFAULT 'Relaxed'
+                    CHECK (status IN ('Happy', 'Relaxed', 'Sad', 'Angry')),
     energy_level VARCHAR(10)  CHECK (energy_level IN ('Low', 'Medium', 'High')),
     notes        TEXT,
     created_at   TIMESTAMPTZ  DEFAULT NOW(),

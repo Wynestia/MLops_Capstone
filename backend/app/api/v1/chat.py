@@ -83,7 +83,7 @@ async def _build_dog_context(dog: Dog, db: AsyncSession) -> dict:
     return {
         "name": dog.name,
         "breed": dog.breed or "mixed breed",
-        "age": age or dog.notes or "unknown",
+        "age": age if age is not None else "unknown",
         "weight_kg": dog.weight_kg or "unknown",
         "sex": dog.sex or "unknown",
         "energy_level": dog.energy_level or "medium",

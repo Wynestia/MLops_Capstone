@@ -1,6 +1,6 @@
 ﻿import { G } from "../styles/theme";
 
-function Nav({ page, setPage }) {
+function Nav({ page, setPage, onLogout }) {
   return (
     <nav style={{ display:"flex", alignItems:"center", padding:"0 32px", height:60, background:"white", borderBottom:`1px solid ${G.border}`, position:"sticky", top:0, zIndex:200, boxShadow:"0 1px 12px rgba(92,61,30,.06)" }}>
       <div style={{ display:"flex", alignItems:"center", gap:8, marginRight:40 }}>
@@ -13,6 +13,11 @@ function Nav({ page, setPage }) {
         ))}
       </div>
       <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:14 }}>
+        {onLogout && (
+          <button className="btn btn-ghost" style={{ padding:"6px 10px", fontSize:12 }} onClick={onLogout}>
+            Logout
+          </button>
+        )}
         <div style={{ position:"relative" }}>
           <span style={{ fontSize:20, cursor:"pointer" }}>🔔</span>
           <span style={{ position:"absolute", top:-4, right:-4, width:16, height:16, background:"#ef4444", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, color:"white", fontWeight:700, fontFamily:G.fs }}>3</span>

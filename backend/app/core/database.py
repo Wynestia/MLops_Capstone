@@ -40,3 +40,13 @@ async def init_db():
     """Create all tables (for dev/testing - use Alembic for production)."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Dev-safe schema patch for existing databases created before dogs.status existed.
+        await conn.exec_driver_sql(
+            "ALTER TABLE dogs ADD COLUMN IF NOT EXISTS status VARCHAR(20)"
+        )
+        await conn.exec_driver_sql(
+            "ALTER TABLE dogs ALTER COLUMN status SET DEFAULT 'Relaxed'"
+        )
+        await conn.exec_driver_sql(
+            "UPDATE dogs SET status = 'Relaxed' WHERE status IS NULL"
+        )

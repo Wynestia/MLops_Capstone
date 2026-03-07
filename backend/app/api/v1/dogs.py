@@ -33,7 +33,10 @@ async def create_dog(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    dog = Dog(**body.model_dump(), user_id=current_user.id)
+    payload = body.model_dump(exclude_none=True)
+    if "status" not in payload:
+        payload["status"] = "Relaxed"
+    dog = Dog(**payload, user_id=current_user.id)
     db.add(dog)
     await db.flush()
     await db.refresh(dog)

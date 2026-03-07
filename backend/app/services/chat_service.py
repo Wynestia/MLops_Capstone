@@ -1,10 +1,9 @@
 """
 AI Chat Service
 Builds context-aware prompts from dog history and calls Groq LLM.
-Model: llama-3.3-70b-versatile (fast, cheap, multilingual)
+Model: llama-3.3-70b-versatile
 """
 import logging
-from typing import Optional
 
 from app.core.config import settings
 
@@ -36,8 +35,9 @@ Guidelines:
 - Provide practical, actionable advice
 - Recommend vet consultation for serious concerns
 - Keep responses warm, helpful, and concise
-- Support both Thai and English responses based on the user's language
-- Add relevant emojis to make responses friendly 🐾
+- Respond in Thai by default
+- If the user explicitly asks for English, respond in English
+- Add relevant emojis to make responses friendly
 """
 
 
@@ -52,30 +52,27 @@ class ChatService:
             return
         try:
             from groq import AsyncGroq
+
             self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
-            logger.info(f"✅ Groq client initialized (model: {settings.GROQ_MODEL})")
+            logger.info("Groq client initialized (model: %s)", settings.GROQ_MODEL)
         except Exception as e:
-            logger.error(f"Failed to init Groq: {e}")
+            logger.error("Failed to init Groq: %s", e)
 
     def build_system_prompt(self, dog_context: dict) -> str:
         mood_history = "\n".join(
-            [f"  - {m['logged_at']}: {m['mood']} ({m.get('note', '')})"
-             for m in dog_context.get("mood_history", [])]
+            [f"  - {m['logged_at']}: {m['mood']} ({m.get('note', '')})" for m in dog_context.get("mood_history", [])]
         ) or "  No recent mood records"
 
         medications = "\n".join(
-            [f"  - {m['name']} {m['dose']} ({m['frequency']})"
-             for m in dog_context.get("medications", [])]
+            [f"  - {m['name']} {m['dose']} ({m['frequency']})" for m in dog_context.get("medications", [])]
         ) or "  None"
 
         health_records = "\n".join(
-            [f"  - {r['condition']} [{r['severity']}] — {r['status']}"
-             for r in dog_context.get("health_records", [])]
+            [f"  - {r['condition']} [{r['severity']}] - {r['status']}" for r in dog_context.get("health_records", [])]
         ) or "  None"
 
         journal_notes = "\n".join(
-            [f"  - {j['entry_date']}: {j['content']}"
-             for j in dog_context.get("journal_entries", [])]
+            [f"  - {j['entry_date']}: {j['content']}" for j in dog_context.get("journal_entries", [])]
         ) or "  No recent journal entries"
 
         return SYSTEM_PROMPT_TEMPLATE.format(
@@ -98,12 +95,10 @@ class ChatService:
         dog_context: dict,
     ) -> str:
         if not self.client:
-            return self._mock_response(user_message, dog_context)
+            return self._mock_response(dog_context)
 
         system_prompt = self.build_system_prompt(dog_context)
-
         messages = [{"role": "system", "content": system_prompt}]
-        # Add previous conversation (last 10 messages for context window)
         for msg in conversation_history[-10:]:
             messages.append({"role": msg["role"], "content": msg["content"]})
         messages.append({"role": "user", "content": user_message})
@@ -116,22 +111,19 @@ class ChatService:
                 temperature=0.7,
             )
             return response.choices[0].message.content
-
         except Exception as e:
-            logger.error(f"Groq API error: {e}")
-            return self._mock_response(user_message, dog_context)
+            logger.error("Groq API error: %s", e)
+            return self._mock_response(dog_context)
 
-    def _mock_response(self, user_message: str, dog_context: dict) -> str:
-        name = dog_context.get("name", "your dog")
-        breed = dog_context.get("breed", "your dog's breed")
+    def _mock_response(self, dog_context: dict) -> str:
+        name = dog_context.get("name", "น้องหมาของคุณ")
+        breed = dog_context.get("breed", "สายพันธุ์ของน้อง")
         return (
-            f"Based on {name}'s recent history and profile, here's my take: "
-            f"This behavior pattern is quite common in {breed}s. "
-            f"I'd recommend maintaining a consistent daily routine with regular outdoor activity. "
-            f"If you notice this persisting for more than 2 weeks, please consult your veterinarian. 🐾\n\n"
-            f"*(Note: AI chat is running in demo mode. Add your Groq API key to `.env` for full responses.)*"
+            f"จากข้อมูลล่าสุดของ {name} พฤติกรรมที่เห็นถือว่าพบได้ในน้องสายพันธุ์ {breed} ค่อนข้างบ่อยครับ "
+            "แนะนำให้คงกิจวัตรประจำวันให้สม่ำเสมอ เพิ่มกิจกรรมออกกำลังกายเบา ๆ และติดตามอาการต่อเนื่องครับ 🐾\n\n"
+            "ถ้าอาการนี้ยาวเกิน 2 สัปดาห์ หรือมีอาการผิดปกติอื่นร่วมด้วย ควรพาไปพบสัตวแพทย์เพื่อประเมินเพิ่มเติมครับ\n\n"
+            "*(หมายเหตุ: ตอนนี้ระบบแชตยังอยู่ในโหมดเดโม หากต้องการคำตอบจากโมเดลจริงให้ตั้งค่า `GROQ_API_KEY` ใน `.env`)*"
         )
 
 
-# Singleton
 chat_service = ChatService()
