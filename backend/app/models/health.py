@@ -129,15 +129,43 @@ class ActivityLog(Base):
     dog: Mapped["Dog"] = relationship("Dog", back_populates="activity_logs")
 
 
+class ChatThread(Base):
+    __tablename__ = "chat_threads"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
+    dog_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("dogs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    title: Mapped[str] = mapped_column(String(120), default="New chat")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_message_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    dog: Mapped["Dog"] = relationship("Dog", back_populates="chat_threads")
+    messages: Mapped[list["ChatMessage"]] = relationship(
+        "ChatMessage",
+        back_populates="thread",
+        cascade="all, delete-orphan",
+    )
+
+
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4()))
     dog_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("dogs.id", ondelete="CASCADE"), nullable=False, index=True)
+    thread_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("chat_threads.id", ondelete="CASCADE"),
+        index=True,
+    )
     analysis_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), ForeignKey("mood_analyses.id", ondelete="SET NULL"))
     role: Mapped[str] = mapped_column(String(20), nullable=False)       # user | assistant
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     dog: Mapped["Dog"] = relationship("Dog", back_populates="chat_messages")
+    thread: Mapped["ChatThread | None"] = relationship("ChatThread", back_populates="messages")
     analysis: Mapped["MoodAnalysis | None"] = relationship("MoodAnalysis", back_populates="chat_messages")

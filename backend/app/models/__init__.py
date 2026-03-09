@@ -9,6 +9,7 @@ from app.models.health import (
     HealthRecord,
     Vaccine,
     ActivityLog,
+    ChatThread,
     ChatMessage,
 )
 
@@ -23,5 +24,6 @@ __all__ = [
     "HealthRecord",
     "Vaccine",
     "ActivityLog",
+    "ChatThread",
     "ChatMessage",
 ]

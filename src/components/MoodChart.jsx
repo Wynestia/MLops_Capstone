@@ -17,10 +17,11 @@ function MoodChart({ data }) {
         <Tooltip content={({ active, payload }) => {
           if (!active||!payload?.length) return null;
           const d = payload[0].payload; const c = MOOD_CONFIG[d.label];
-          return <div style={{ background:"white", border:`2px solid ${c?.color}`, borderRadius:10, padding:"6px 12px", fontSize:12, fontFamily:G.fs, boxShadow:"0 4px 16px rgba(0,0,0,.1)" }}>{c?.emoji} <strong style={{ color:c?.text }}>{d.label}</strong></div>;
+          const borderColor = c?.color || "#d1d5db";
+          return <div style={{ background:"white", border:`2px solid ${borderColor}`, borderRadius:10, padding:"6px 12px", fontSize:12, fontFamily:G.fs, boxShadow:"0 4px 16px rgba(0,0,0,.1)" }}>{c ? `${c.emoji} ` : ""}<strong style={{ color:c?.text || G.muted }}>{c ? d.label : "No mood data"}</strong></div>;
         }}/>
         <Area type="monotone" dataKey="mood" stroke="#f59e0b" strokeWidth={2.5} fill="url(#mg)"
-          dot={({ cx, cy, payload }) => { const c=MOOD_CONFIG[payload.label]; return <circle key={cx} cx={cx} cy={cy} r={5} fill={c?.color||"#ccc"} stroke="white" strokeWidth={2}/>; }}/>
+          dot={({ cx, cy, payload }) => { const c=MOOD_CONFIG[payload.label]; return <circle key={cx} cx={cx} cy={cy} r={5} fill={c?.color||"#d1d5db"} stroke="white" strokeWidth={2}/>; }}/>
       </AreaChart>
     </ResponsiveContainer>
   );

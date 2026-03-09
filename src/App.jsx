@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Nav from "./components/Nav";
 import Dashboard from "./pages/Dashboard";
 import MyDogs from "./pages/MyDogs";
@@ -67,6 +67,7 @@ function AuthWrapper({ children }) {
       const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(body),
       });
 
@@ -179,12 +180,121 @@ function normalizeDog(dog) {
   };
 }
 
+function slugText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function buildNotificationId(dogId, type, message) {
+  return `${dogId}:${type}:${slugText(message)}`;
+}
+
+function buildNotificationTitle(dogName, type) {
+  switch (type) {
+    case "vaccine":
+      return `${dogName} · Vaccine alert`;
+    case "mood":
+      return `${dogName} · Mood alert`;
+    case "health":
+      return `${dogName} · Health follow-up`;
+    default:
+      return `${dogName} · Update`;
+  }
+}
+
+function collectDogNotifications(dog, dashboard) {
+  const fetchedAt = new Date().toISOString();
+  const list = [];
+  const alerts = Array.isArray(dashboard?.alerts) ? dashboard.alerts : [];
+
+  alerts.forEach((alert) => {
+    const type = alert?.type || "info";
+    const message = alert?.message || "New update available";
+    list.push({
+      id: buildNotificationId(dog.id, type, message),
+      dogId: dog.id,
+      dogName: dog.name,
+      type,
+      title: buildNotificationTitle(dog.name, type),
+      message,
+      createdAt: fetchedAt,
+      targetPage: type === "mood" ? "analyze" : "dogs",
+      priority: type === "vaccine" ? 1 : type === "health" ? 2 : type === "mood" ? 3 : 9,
+    });
+  });
+
+  const ongoingHealthCount = Number(dashboard?.ongoing_health_count || 0);
+  if (ongoingHealthCount > 0) {
+    const message = `${ongoingHealthCount} ongoing health record(s) need follow-up.`;
+    list.push({
+      id: buildNotificationId(dog.id, "health", message),
+      dogId: dog.id,
+      dogName: dog.name,
+      type: "health",
+      title: buildNotificationTitle(dog.name, "health"),
+      message,
+      createdAt: fetchedAt,
+      targetPage: "dogs",
+      priority: 2,
+    });
+  }
+
+  return list;
+}
+
 function MainApp() {
   const [page, setPage] = useState("dashboard");
   const [dogs, setDogs] = useState([]);
   const [selectedDog, setSelectedDog] = useState(null);
   const [loading, setLoading] = useState(true);
-  const handleLogout = () => {
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  const fetchNotifications = useCallback(async (sourceDogs = dogs) => {
+    if (!sourceDogs.length) {
+      setNotifications([]);
+      return;
+    }
+
+    setNotificationsLoading(true);
+    try {
+      const dashboards = await Promise.all(
+        sourceDogs.map(async (dog) => {
+          try {
+            const dashboard = await apiFetch(`/dogs/${dog.id}/dashboard`);
+            return { dog, dashboard };
+          } catch {
+            return null;
+          }
+        }),
+      );
+
+      const rawItems = dashboards
+        .filter(Boolean)
+        .flatMap(({ dog, dashboard }) => collectDogNotifications(dog, dashboard));
+
+      const deduped = Array.from(new Map(rawItems.map((item) => [item.id, item])).values());
+      deduped.sort((a, b) => {
+        if (a.priority !== b.priority) return a.priority - b.priority;
+        return String(a.dogName).localeCompare(String(b.dogName));
+      });
+      setNotifications(deduped);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, [dogs]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      // Ignore network errors here; local token removal is still enough for local logout.
+    }
     localStorage.removeItem("pawmind_token");
     window.location.reload();
   };
@@ -210,6 +320,16 @@ function MainApp() {
     fetchDogs();
   }, []);
 
+  useEffect(() => {
+    fetchNotifications();
+  }, [dogs, fetchNotifications]);
+
+  const handleNotificationClick = useCallback((item) => {
+    const dog = dogs.find((d) => String(d.id) === String(item?.dogId));
+    if (dog) setSelectedDog(dog);
+    setPage(item?.targetPage || "dogs");
+  }, [dogs]);
+
   // Keep a null-safe selected dog reference across pages.
   const activeDog = selectedDog || dogs[0] || null;
 
@@ -218,7 +338,15 @@ function MainApp() {
   return (
     <div style={{ fontFamily: G.fs, background: G.bg, minHeight: "100vh" }}>
       <style>{`${css}\n${appAnimations}`}</style>
-      <Nav page={page} setPage={setPage} onLogout={handleLogout} />
+      <Nav
+        page={page}
+        setPage={setPage}
+        onLogout={handleLogout}
+        notifications={notifications}
+        notificationsLoading={notificationsLoading}
+        onRefreshNotifications={() => fetchNotifications()}
+        onNotificationClick={handleNotificationClick}
+      />
       {page === "dashboard" && <Dashboard dogs={dogs} setPage={setPage} setSelectedDog={setSelectedDog} />}
       {page === "dogs" && <MyDogs dogs={dogs} selectedDog={activeDog} setSelectedDog={setSelectedDog} setPage={setPage} onDogAdded={fetchDogs} />}
       {page === "analyze" && <AnalyzeChat dogs={dogs} selectedDog={activeDog} setSelectedDog={setSelectedDog} />}

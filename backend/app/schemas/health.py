@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, Literal
 
 
 # ─── Mood Analysis ────────────────────────────────────────────────────────────
@@ -50,6 +50,11 @@ class WeightLogCreate(BaseModel):
     recorded_at: date
 
 
+class WeightLogUpdate(BaseModel):
+    weight_kg: Optional[float] = None
+    recorded_at: Optional[date] = None
+
+
 class WeightLogOut(BaseModel):
     id: str
     dog_id: str
@@ -71,6 +76,7 @@ class JournalCreate(BaseModel):
 class JournalUpdate(BaseModel):
     content: Optional[str] = None
     mood: Optional[str] = None
+    entry_date: Optional[date] = None
 
 
 class JournalOut(BaseModel):
@@ -211,15 +217,32 @@ class ActivityLogOut(BaseModel):
 class ChatMessageIn(BaseModel):
     message: str
     analysis_id: Optional[str] = None
+    thread_id: Optional[str] = None
+    response_mode: Literal["auto", "grounded", "balanced", "general"] = "auto"
 
 
 class ChatMessageOut(BaseModel):
     id: str
     dog_id: str
+    thread_id: Optional[str]
     analysis_id: Optional[str]
     role: str
     content: str
     created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ChatThreadCreate(BaseModel):
+    title: Optional[str] = None
+
+
+class ChatThreadOut(BaseModel):
+    id: str
+    dog_id: str
+    title: str
+    created_at: datetime
+    last_message_at: datetime
 
     model_config = {"from_attributes": True}
 

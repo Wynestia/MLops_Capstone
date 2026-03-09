@@ -77,6 +77,11 @@ class Dog(Base):
         back_populates="dog",
         cascade="all, delete-orphan",
     )
+    chat_threads: Mapped[list["ChatThread"]] = relationship(
+        "ChatThread",
+        back_populates="dog",
+        cascade="all, delete-orphan",
+    )
     chat_messages: Mapped[list["ChatMessage"]] = relationship(
         "ChatMessage",
         back_populates="dog",

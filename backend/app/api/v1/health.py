@@ -10,7 +10,7 @@ from app.models.health import (
     WeightLog, JournalEntry, Medication, HealthRecord, Vaccine, ActivityLog
 )
 from app.schemas.health import (
-    WeightLogCreate, WeightLogOut,
+    WeightLogCreate, WeightLogUpdate, WeightLogOut,
     JournalCreate, JournalUpdate, JournalOut,
     MedicationCreate, MedicationUpdate, MedicationOut,
     HealthRecordCreate, HealthRecordUpdate, HealthRecordOut,
@@ -43,6 +43,20 @@ async def create_weight(dog_id: str, body: WeightLogCreate, current_user: User =
     await _get_dog_or_404(dog_id, current_user, db)
     log = WeightLog(dog_id=dog_id, **body.model_dump())
     db.add(log)
+    await db.flush()
+    await db.refresh(log)
+    return WeightLogOut.model_validate(log)
+
+
+@router.put("/{dog_id}/weights/{log_id}", response_model=WeightLogOut)
+async def update_weight(dog_id: str, log_id: str, body: WeightLogUpdate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    await _get_dog_or_404(dog_id, current_user, db)
+    result = await db.execute(select(WeightLog).where(WeightLog.id == log_id, WeightLog.dog_id == dog_id))
+    log = result.scalar_one_or_none()
+    if not log:
+        raise HTTPException(404, "Record not found")
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(log, k, v)
     await db.flush()
     await db.refresh(log)
     return WeightLogOut.model_validate(log)
@@ -267,3 +281,13 @@ async def update_activity(dog_id: str, log_id: str, body: ActivityLogCreate, cur
     await db.flush()
     await db.refresh(log)
     return ActivityLogOut.model_validate(log)
+
+
+@router.delete("/{dog_id}/activities/{log_id}", status_code=204)
+async def delete_activity(dog_id: str, log_id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    await _get_dog_or_404(dog_id, current_user, db)
+    result = await db.execute(select(ActivityLog).where(ActivityLog.id == log_id, ActivityLog.dog_id == dog_id))
+    log = result.scalar_one_or_none()
+    if not log:
+        raise HTTPException(404, "Activity log not found")
+    await db.delete(log)

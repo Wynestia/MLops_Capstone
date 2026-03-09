@@ -34,6 +34,17 @@ body{background:${G.bg}}
 
 .chat-bubble-user{background:linear-gradient(135deg,${G.brown},${G.brownLight});color:white;border-radius:18px 18px 4px 18px;padding:12px 16px;font-size:13.5px;line-height:1.65;max-width:80%;align-self:flex-end;font-family:${G.fs}}
 .chat-bubble-ai{background:white;border:1.5px solid ${G.border};color:${G.text};border-radius:18px 18px 18px 4px;padding:12px 16px;font-size:13.5px;line-height:1.65;max-width:85%;align-self:flex-start;font-family:${G.fs};box-shadow:0 2px 10px rgba(92,61,30,.06)}
+.chat-markdown{font-family:${G.fs};font-size:13.5px;line-height:1.65;color:${G.text}}
+.chat-markdown h1,.chat-markdown h2,.chat-markdown h3,.chat-markdown h4{font-family:${G.ff};line-height:1.3;color:${G.text};margin:8px 0 6px}
+.chat-markdown h2{font-size:16px}
+.chat-markdown h3{font-size:14px}
+.chat-markdown p{margin:0 0 8px}
+.chat-markdown ul,.chat-markdown ol{padding-left:18px;margin:0 0 8px}
+.chat-markdown li{margin:2px 0}
+.chat-markdown code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:${G.brownPale};padding:1px 5px;border-radius:6px;font-size:12px}
+.chat-markdown pre{background:${G.bg};border:1px solid ${G.border};border-radius:10px;padding:10px;overflow:auto;margin:0 0 8px}
+.chat-markdown pre code{background:transparent;padding:0;border-radius:0}
+.chat-markdown strong{font-weight:700}
 
 .chat-input{width:100%;background:white;border:2px solid ${G.border};border-radius:14px;padding:12px 16px;font-family:${G.fs};font-size:14px;color:${G.text};outline:none;resize:none;transition:border-color .2s}
 .chat-input:focus{border-color:${G.brown}}

@@ -24,6 +24,9 @@ CREATE TABLE users (
     id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     email         VARCHAR(255) UNIQUE NOT NULL,
     name          VARCHAR(100),
+    phone         VARCHAR(50),
+    address       VARCHAR(255),
+    emergency_contact VARCHAR(120),
     password_hash TEXT        NOT NULL,
     created_at    TIMESTAMPTZ DEFAULT NOW(),
     updated_at    TIMESTAMPTZ DEFAULT NOW()
@@ -194,11 +197,26 @@ CREATE INDEX idx_activity_dog_id ON activity_logs (dog_id);
 CREATE INDEX idx_activity_date   ON activity_logs (dog_id, logged_date DESC);
 
 -- =============================================================================
+-- TABLE: chat_threads
+-- =============================================================================
+CREATE TABLE chat_threads (
+    id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    dog_id          UUID        NOT NULL REFERENCES dogs(id) ON DELETE CASCADE,
+    title           VARCHAR(120) NOT NULL DEFAULT 'New chat',
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    last_message_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_chat_threads_dog_id         ON chat_threads (dog_id);
+CREATE INDEX idx_chat_threads_last_message   ON chat_threads (dog_id, last_message_at DESC);
+
+-- =============================================================================
 -- TABLE: chat_messages
 -- =============================================================================
 CREATE TABLE chat_messages (
     id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     dog_id      UUID        NOT NULL REFERENCES dogs(id) ON DELETE CASCADE,
+    thread_id   UUID        REFERENCES chat_threads(id) ON DELETE CASCADE,
     analysis_id UUID        REFERENCES mood_analyses(id) ON DELETE SET NULL,
     role        VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant')),
     content     TEXT        NOT NULL,
@@ -206,6 +224,7 @@ CREATE TABLE chat_messages (
 );
 
 CREATE INDEX idx_chat_messages_dog_id ON chat_messages (dog_id);
+CREATE INDEX idx_chat_messages_thread ON chat_messages (thread_id);
 CREATE INDEX idx_chat_messages_time   ON chat_messages (dog_id, created_at ASC);
 
 -- =============================================================================
