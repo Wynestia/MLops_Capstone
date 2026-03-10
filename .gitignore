@@ -6,9 +6,10 @@ dist/
 .vite/
 coverage/
 
-# local env files
+# local env files (never commit files with secrets!)
 .env
 .env.*
+.env.production
 !.env.example
 
 # editor / OS
