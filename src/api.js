@@ -1,5 +1,13 @@
-export const API_BASE = "http://localhost:8000/api/v1";
-export const API_ORIGIN = API_BASE.replace(/\/api\/v1$/, "");
+const rawApiOrigin = import.meta?.env?.VITE_API_URL;
+const normalizedOrigin = (rawApiOrigin ?? "http://localhost:8000").replace(
+  /\/$/,
+  ""
+);
+
+export const API_ORIGIN =
+  normalizedOrigin ||
+  (typeof window !== "undefined" ? window.location.origin : "");
+export const API_BASE = `${normalizedOrigin ? normalizedOrigin : ""}/api/v1`;
 
 // Simple helper to get token
 export function getToken() {
