@@ -18,8 +18,8 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-MOOD_LABELS = ["Happy", "Relaxed", "Sad", "Angry"]
-MOOD_LABEL_MAP = {0: "Happy", 1: "Relaxed", 2: "Sad", 3: "Angry"}
+MOOD_LABELS = ["Angry", "Happy", "Relaxed", "Sad"]
+MOOD_LABEL_MAP = {0: "Angry", 1: "Happy", 2: "Relaxed", 3: "Sad"}
 
 
 class MLService:
@@ -59,14 +59,6 @@ class MLService:
         return arr
 
     def predict(self, image_bytes: bytes) -> dict:
-        """
-        Returns:
-            {
-                "mood": "Happy",
-                "confidence": 92.1,
-                "scores": {"Happy": 92.1, "Relaxed": 5.2, "Sad": 1.8, "Angry": 0.9}
-            }
-        """
         if not self.model_loaded:
             return self._mock_predict()
 
