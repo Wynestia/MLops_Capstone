@@ -1,5 +1,24 @@
 # PawMind
+## หมายเหตุข้อมูลการใช้งาน ในโค๊ด docker compose ถูกออกแบบมาเพื่อรัน on cloud เท่านั้น!
 
+## MLFLOW
+- สามารถเข้าใช้งานได้ที่ http://34.143.232.141:5000/?fbclid=IwY2xjawQdcr1leHRuA2FlbQIxMABicmlkETFHalJHcDBkT2RFNTdTMHR1c3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHt1m57zu9G2rFoJkOahzrlmVEG4VpDuLBcDU8JXQrDd3_uaQEeMTToHOCc5A_aem_sm5UFsammdIvceXcTciGgQ#/
+## FRONTEND
+- สามารถเข้าใช้งานได้ทัี่ http://34.124.191.174
+
+## PGADMIN
+- สามารถเข้าถึงได้ที่ http://127.0.0.1:5050/browser/ โดยหากจะเปิดจำเป็นที่จะต้อง gen key เเล้วเอา public key ไปใส่ใน setting -> ssh -> add key เเล้วใส่ public เข้าไป เเล้วใช้คำสั่ง  ssh -i /Users/aomtamon/Documents/mykey/g66070085_gcp_key -N -L 5051:127.0.0.1:5050 g66070085@34.124.191.174
+
+## การเข้าดูไฟลทีที่ใช้ในการทำงาน
+- ต้องพิมพ์คำสั่งนี้ sudo su - g66070085 ใน ssh terminal ของ google cloud ถึงจะเห็นไฟล์เเละโฟลเดอร์การทำงานทั้งหมด
+
+## สมาชิกกลุ่ม
+ธมนพรรณ ปุณโณฑก หน้าที่า google cloud
+สรัญญา แก้วพิภพ หน้าที่ backend
+ธนพล อาภาวุฒิคุณ หน้าที่ frontend
+อัษฎาวุธ ธรรมวณิช หน้าที่ Model & MLFlow
+
+## ข้อมูลเว็บไซต์คร่าวๆ
 PawMind คือระบบเว็บแอปพลิเคชันสำหรับติดตามสุขภาพและวิเคราะห์อารมณ์ของสุนัข โดยผสานการจัดเก็บข้อมูลสุขภาพเข้ากับการใช้ AI/ML เพื่อช่วยให้เจ้าของสามารถเฝ้าติดตามพฤติกรรมและสภาวะของสุนัขได้อย่างเป็นระบบ รวมถึงใช้ข้อมูลเหล่านี้ประกอบการดูแลและการปรึกษาสัตวแพทย์ได้อย่างมีประสิทธิภาพ
 
 ## ที่มาและความสำคัญของโครงงาน
@@ -147,16 +166,13 @@ MLops_Capstone/
 │   │   ├── models/             # SQLAlchemy models
 │   │   ├── schemas/            # Pydantic schemas
 │   │   └── services/           # service ต่าง ๆ เช่น ML และ chat
-│   ├── ml/                     # ONNX model ที่ backend ใช้งาน
+│   ├── ml/                     # model, checkpoint และ notebook ที่เกี่ยวกับ ML
 │   ├── migrations/             # Alembic migration
 │   ├── scripts/                # utility script
 │   ├── Dockerfile
 │   ├── docker-compose.yml
 │   ├── docker-compose.local.yml
 │   └── docker-compose.prod.yml
-├── ml/
-│   ├── model.pth               # โมเดลต้นทางแบบ PyTorch
-│   └── notebooks/              # notebook สำหรับ training
 ├── nginx/                      # config ของ Nginx
 ├── Dockerfile.frontend
 ├── DEPLOYMENT_GUIDE.md
@@ -302,7 +318,13 @@ backend/ml/model.onnx
 ส่วนไฟล์ต้นทางแบบ PyTorch ที่ใช้แปลงคือ
 
 ```text
-ml/model.pth
+backend/ml/model.pth
+```
+
+และ notebook สำหรับ training อยู่ที่
+
+```text
+backend/ml/notebooks/dog-emotions-classifier.ipynb
 ```
 
 ### ลำดับ label ปัจจุบันของโมเดล
@@ -362,9 +384,3 @@ ml/model.pth
 ## สรุป
 
 PawMind เป็นโครงงานที่รวมองค์ประกอบสำคัญของระบบสมัยใหม่ไว้ครบถ้วน ทั้ง Frontend, Backend, Database, AI/ML และ Deployment โดยมีเป้าหมายเพื่อสร้างระบบที่ช่วยให้เจ้าของสุนัขสามารถดูแลสัตว์เลี้ยงได้ดีขึ้นผ่านการใช้ข้อมูลและ AI อย่างเป็นรูปธรรม
-
-## สมาชิกกลุ่ม
-ธมนพรรณ ปุณโณฑก หน้าที่า google cloud
-สรัญญา แก้วพิภพ หน้าที่ backend
-ธนพล อาภาวุฒิคุณ หน้าที่ frontend
-อัษฎาวุธ ธรรมวณิช หน้าที่ Model & MLFlow
